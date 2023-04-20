@@ -1,0 +1,11 @@
+.ipynb_checkpoints
+.DS_Store
+
+wandb
+__pycache__/
+data/
+models/
+outputs/
+
+.env
+config.json
