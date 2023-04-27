@@ -17,12 +17,13 @@ from model import NeuralNetwork
 
 config = {
     "lr": 1e-4,
-    "max_iter": 80000,
+    "max_iter": 80000-5000,
     "logging_interval": 100,
     "preview_interval": 1000,
     "batch_size": 8,
     "activations": "ReLU",
     "optimizer": "Adam",
+    "lambda": 8
 }
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -47,7 +48,7 @@ def prepare_data(style_dir, content_dir, preview_dir):
     return datastore, preview_datastore
 
 
-def preview(model, datastore, iteration):
+def preview(model, datastore, iteration, save=False, use_wandb=False):
     model.eval()
     with torch.no_grad():
         np.random.shuffle(datastore.dataset.style_imgs)
@@ -71,9 +72,13 @@ def preview(model, datastore, iteration):
             axs[i+2].axis('off')
             axs[i+2].set_title('output')
             i += 3
-        fig.savefig(f'outputs/{iteration}_preview.png')
-        wandb.log({f'{iteration}_preview': wandb.Image(f'outputs/{iteration}_preview.png')})
-        plt.close(fig)
+         
+        if save:
+            fig.savefig(f'outputs/{iteration}_preview.png')
+            plt.close(fig)
+        
+        if use_wandb:
+            wandb.log({f'{iteration}_preview': wandb.Image(f'outputs/{iteration}_preview.png')})
 
 
 def train_one_iter(datastore, model, optimizer, loss_fn: Loss):
@@ -106,7 +111,7 @@ def train(datastore, preview_datastore, model, use_wandb=False):
     train_history = {'style_loss': [], 'content_loss': [], 'loss': []}
     
     optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'])
-    loss_fn = Loss()
+    loss_fn = Loss(lamb=config['lambda'])
 
     for i in range(config['max_iter']):
         loss, content_loss, style_loss = train_one_iter(datastore, model, optimizer, loss_fn)
@@ -119,14 +124,14 @@ def train(datastore, preview_datastore, model, use_wandb=False):
             print(f'loss: {loss:>5f}, style loss: {style_loss:>5f}, content loss: {content_loss:>5f}')
             print('-------------------------------')
 
-            torch.save(model.state_dict(), 'outputs/model.pt')
             if use_wandb:
                 wandb.log({
                     'iter': i, 'loss': loss, 'style_loss': style_loss, 'content_loss': content_loss
                 })
 
         if i%config['preview_interval'] == 0:
-            preview(model, preview_datastore, i)
+            torch.save(model.state_dict(), 'outputs/model.pt')
+            preview(model, preview_datastore, i, save=True, use_wandb=use_wandb)
 
     return train_history
 
@@ -137,6 +142,7 @@ def main():
     parser.add_argument('--style_path', type=str, help='path to content dataset')
     parser.add_argument('--preview_path', type=str, help='path to preview dataset')
     parser.add_argument('--wandb', type=str, help='wandb id')
+    parser.add_argument('--model_path', type=str, help='path to model')
     args = parser.parse_args()
 
     use_wandb = False
@@ -158,8 +164,12 @@ def main():
         os.mkdir('outputs')
 
     datastore, preview_datastore = prepare_data(style_dir, content_dir, preview_dir)
-    model = NeuralNetwork().to(device)
+    
+    model = NeuralNetwork()
+    if args.model_path:
+        model.load_state_dict(torch.load(args.model_path, map_location=torch.device(device)))
     print(summary(model))
+    model.to(device)
     
     train(datastore, preview_datastore, model, use_wandb)
     

@@ -11,7 +11,6 @@ class NeuralNetwork(nn.Module):
         # self.encoder = list(vgg19(weights='VGG19_Weights.DEFAULT').children())[0][:21]
         self.encoder = list(vgg19(pretrained=True).children())[0][:21]
 
-        # freeze the encoder
         for param in self.encoder.parameters():
             param.requires_grad = False
         
@@ -46,7 +45,7 @@ class NeuralNetwork(nn.Module):
             nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
             nn.ReLU(),
             nn.Conv2d(64, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
-            # nn.ReLU(), # tu mozno nieco ine, kedze to uz je finalny vystup
+            # nn.ReLU(), 
         )
 
     # https://stackoverflow.com/a/68854535
