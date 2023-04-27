@@ -107,10 +107,9 @@ def train_one_iter(datastore, model, optimizer, loss_fn: Loss):
     return loss.item(), loss_fn.loss_c.item(), loss_fn.loss_s.item()
 
 
-def train(datastore, preview_datastore, model, use_wandb=False):
+def train(datastore, preview_datastore, model: NeuralNetwork, use_wandb=False):
     train_history = {'style_loss': [], 'content_loss': [], 'loss': []}
-    
-    optimizer = torch.optim.Adam(model.endcoder.parameters(), lr=config['lr'])
+    optimizer = torch.optim.Adam(model.encoder.parameters(), lr=config['lr'])
     loss_fn = Loss(lamb=config['lambda'])
 
     for i in range(config['max_iter']):

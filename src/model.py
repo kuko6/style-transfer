@@ -18,7 +18,7 @@ class NeuralNetwork(nn.Module):
         for param in self.encoder.parameters():
             param.requires_grad = False
         
-        # create dict for saving the activations used in the style loss
+        # create dict for saving activations used in the style loss
         self.activations = {}
         for i, module in enumerate(self.encoder.children()):
             if i in [1, 6, 11, 20]:
@@ -54,6 +54,7 @@ class NeuralNetwork(nn.Module):
             nn.ReLU(),
             nn.Conv2d(64, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
             # nn.ReLU(), # TODO: dat sem Tanh
+            nn.Tanh()
         )
 
     # https://stackoverflow.com/a/68854535
