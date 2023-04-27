@@ -9,7 +9,11 @@ class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
         # self.encoder = list(vgg19(weights='VGG19_Weights.DEFAULT').children())[0][:21]
-        self.encoder = list(vgg19(pretrained=True).children())[0][:21]
+
+        # TODO: 
+        # - pozriet ci tu nie su tie avg.pool, flatten
+        # - len features
+        self.encoder = list(vgg19(pretrained=True).children())[0][:21] 
 
         for param in self.encoder.parameters():
             param.requires_grad = False
@@ -21,6 +25,10 @@ class NeuralNetwork(nn.Module):
                 module.register_forward_hook(self._save_activations(i))
         
         self.AdaIN = AdaIN()
+        
+        # TODO: 
+        # - zmensit model
+        # - malo by to byt ako up, conv, relu alebo conv, up, relu?
         self.decoder = nn.Sequential(
             nn.Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
             nn.ReLU(),
@@ -45,7 +53,7 @@ class NeuralNetwork(nn.Module):
             nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
             nn.ReLU(),
             nn.Conv2d(64, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
-            # nn.ReLU(), 
+            # nn.ReLU(), # TODO: dat sem Tanh
         )
 
     # https://stackoverflow.com/a/68854535
