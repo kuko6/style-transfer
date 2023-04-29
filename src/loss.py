@@ -10,11 +10,11 @@ class Loss(nn.Module):
         super().__init__()
         self.lamb = lamb
 
-    def content_loss(self, enc_out, t):
+    def content_loss(self, enc_out: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         # return torch.linalg.norm(enc_out - t)
         return F.mse_loss(enc_out, t)
     
-    def style_loss(self, out_activations, style_activations):
+    def style_loss(self, out_activations: dict, style_activations: dict) -> torch.Tensor:
         means, sds = 0, 0
         for out_act, style_act in zip(out_activations.values(), style_activations.values()):
             # means = torch.linalg.norm(mi(out_act) - mi(style_act))
@@ -24,7 +24,7 @@ class Loss(nn.Module):
             
         return means + sds
 
-    def forward(self, enc_out, t, out_activations, style_activations):
+    def forward(self, enc_out: torch.Tensor, t: torch.Tensor, out_activations: dict, style_activations: dict) -> torch.Tensor:
         self.loss_c = self.content_loss(enc_out, t) / t.shape[0]
         self.loss_s = self.style_loss(out_activations, style_activations) / t.shape[0]
         

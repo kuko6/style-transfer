@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torchvision.models import vgg19
+from torchinfo import summary
 
 from adain import AdaIN
 
@@ -8,12 +9,12 @@ from adain import AdaIN
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
-        # self.encoder = list(vgg19(weights='VGG19_Weights.DEFAULT').children())[0][:21]
 
         # TODO: 
-        # - pozriet ci tu nie su tie avg.pool, flatten
-        # - len features
-        self.encoder = list(vgg19(pretrained=True).children())[0][:21] 
+        # [x] pozriet ci tu nie su tie avg.pool, flatten - mali by byt len features
+        # self.encoder = list(vgg19(pretrained=True).children())[0][:21] 
+        # self.encoder = nn.Sequential(*list(vgg19(weights='VGG19_Weights.DEFAULT').features)[:21])
+        self.encoder = nn.Sequential(*list(vgg19(pretrained=True).features)[:21])
 
         for param in self.encoder.parameters():
             param.requires_grad = False
@@ -27,33 +28,33 @@ class NeuralNetwork(nn.Module):
         self.AdaIN = AdaIN()
         
         # TODO: 
-        # - zmensit model
-        # - malo by to byt ako up, conv, relu alebo conv, up, relu?
+        # [x] zmensit model
+        # [x] malo by to byt ako up, conv, relu
+        # [x] dat na koniec Tanh
         self.decoder = nn.Sequential(
+            nn.Upsample(scale_factor=2.0, mode='nearest'),
             nn.Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
             nn.ReLU(),
-            nn.Upsample(scale_factor=2.0, mode='nearest'),
 
-            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
-            nn.ReLU(),
-            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
-            nn.ReLU(),
+            # nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
+            # nn.ReLU(),
+            # nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
+            # nn.ReLU(),
+            nn.Upsample(scale_factor=2.0, mode='nearest'),
             nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
             nn.ReLU(),
             nn.Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
             nn.ReLU(),
-            nn.Upsample(scale_factor=2.0, mode='nearest'),
             
+            nn.Upsample(scale_factor=2.0, mode='nearest'),
             nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
             nn.ReLU(),
             nn.Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
             nn.ReLU(),
-            nn.Upsample(scale_factor=2.0, mode='nearest'),
             
             nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
             nn.ReLU(),
             nn.Conv2d(64, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
-            # nn.ReLU(), # TODO: dat sem Tanh
             nn.Tanh()
         )
 
@@ -69,10 +70,9 @@ class NeuralNetwork(nn.Module):
         
         self.t = self.AdaIN(enc_content, enc_style)
         out = self.decoder(self.t)
-        #out_t = self.encoder(out)
-        
+
         return out
     
 
 if __name__ == '__main__':
-    print(NeuralNetwork())
+    print(summary(NeuralNetwork()))

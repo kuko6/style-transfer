@@ -17,7 +17,7 @@ from model import NeuralNetwork
 
 config = {
     "lr": 1e-4,
-    "max_iter": 80000-5000,
+    "max_iter": 80000,
     "logging_interval": 100,
     "preview_interval": 1000,
     "batch_size": 8,
@@ -26,7 +26,7 @@ config = {
     "lambda": 8
 }
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using {device} device")
 
 def prepare_data(style_dir, content_dir, preview_dir):
@@ -48,7 +48,7 @@ def prepare_data(style_dir, content_dir, preview_dir):
     return datastore, preview_datastore
 
 
-def preview(model, datastore, iteration, save=False, use_wandb=False):
+def preview(model: NeuralNetwork, datastore: DataStore, iteration, save=False, use_wandb=False):
     model.eval()
     with torch.no_grad():
         np.random.shuffle(datastore.dataset.style_imgs)
@@ -78,10 +78,10 @@ def preview(model, datastore, iteration, save=False, use_wandb=False):
             plt.close(fig)
         
         if use_wandb:
-            wandb.log({f'{iteration}_preview': wandb.Image(f'outputs/{iteration}_preview.png')})
+            wandb.log({'preview': wandb.Image(f'outputs/{iteration}_preview.png')}, step=iteration)    
 
 
-def train_one_iter(datastore, model, optimizer, loss_fn: Loss):
+def train_one_iter(datastore: DataStore, model: NeuralNetwork, optimizer: torch.optim.Adam, loss_fn: Loss):
     model.train()
     
     style, content = datastore.get()
@@ -107,9 +107,10 @@ def train_one_iter(datastore, model, optimizer, loss_fn: Loss):
     return loss.item(), loss_fn.loss_c.item(), loss_fn.loss_s.item()
 
 
-def train(datastore, preview_datastore, model: NeuralNetwork, use_wandb=False):
+def train(datastore, preview_datastore, model: NeuralNetwork, optimizer: torch.optim.Adam, use_wandb=False):
     train_history = {'style_loss': [], 'content_loss': [], 'loss': []}
-    optimizer = torch.optim.Adam(model.encoder.parameters(), lr=config['lr'])
+    
+    # optimizer = torch.optim.Adam(model.decoder.parameters(), lr=config['lr'])
     loss_fn = Loss(lamb=config['lambda'])
 
     for i in range(config['max_iter']):
@@ -129,7 +130,9 @@ def train(datastore, preview_datastore, model: NeuralNetwork, use_wandb=False):
                 })
 
         if i%config['preview_interval'] == 0:
-            torch.save(model.state_dict(), 'outputs/model.pt')
+            torch.save({
+                'iter': i, 'model_state': model.state_dict(), 'optimizer_state': optimizer.state_dict()
+            }, 'outputs/checkpoint.pt')
             preview(model, preview_datastore, i, save=True, use_wandb=use_wandb)
 
     return train_history
@@ -165,12 +168,20 @@ def main():
     datastore, preview_datastore = prepare_data(style_dir, content_dir, preview_dir)
     
     model = NeuralNetwork()
+    optimizer = torch.optim.Adam(model.decoder.parameters(), lr=config['lr'])
     if args.model_path:
-        model.load_state_dict(torch.load(args.model_path, map_location=torch.device(device)))
-    print(summary(model))
+        # From checkpoint
+        checkpoint = torch.load('outputs/checkpoint.pt')
+        model.load_state_dict(checkpoint['model_state'])
+        optimizer.load_state_dict(checkpoint['optimizer_state'])
+        config['max_iter'] -= checkpoint['iter']
+
+        # From final model
+        # model.load_state_dict(torch.load(args.model_path, map_location=torch.device(device)))
+    # print(summary(model))
     model.to(device)
     
-    train(datastore, preview_datastore, model, use_wandb)
+    train(datastore, preview_datastore, model, optimizer, use_wandb)
     
     torch.save(model.state_dict(), 'outputs/model.pt')
     if use_wandb:
