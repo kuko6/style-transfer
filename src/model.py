@@ -6,10 +6,11 @@ from torchinfo import summary
 from adain import AdaIN
 
 
-class NeuralNetwork(nn.Module):
-    def __init__(self):
+class Model(nn.Module):
+    def __init__(self, alpha=1.0):
         super().__init__()
-
+        self.alpha = alpha
+        
         # TODO: 
         # [x] pozriet ci tu nie su tie avg.pool, flatten - mali by byt len features
         # self.encoder = list(vgg19(pretrained=True).children())[0][:21] 
@@ -19,9 +20,13 @@ class NeuralNetwork(nn.Module):
         for param in self.encoder.parameters():
             param.requires_grad = False
         
+        # set padding in conv layers to reflect
         # create dict for saving activations used in the style loss
         self.activations = {}
         for i, module in enumerate(self.encoder.children()):
+            if isinstance(module, nn.Conv2d):
+                module.padding_mode = 'reflect'
+
             if i in [1, 6, 11, 20]:
                 module.register_forward_hook(self._save_activations(i))
         
@@ -61,18 +66,22 @@ class NeuralNetwork(nn.Module):
     # https://stackoverflow.com/a/68854535
     def _save_activations(self, name):
         def hook(module, input, output):
-            self.activations[name] = output.detach()
+            # self.activations[name] = output.detach()
+            self.activations[name] = output
         return hook
 
     def forward(self, content, style):
         enc_content = self.encoder(content)
         enc_style = self.encoder(style)
         
+        # self.t = self.AdaIN(enc_content, enc_style)
+        # out = self.decoder(self.t)
         self.t = self.AdaIN(enc_content, enc_style)
+        self.t = (1.0 - self.alpha) * enc_content + self.alpha * self.t
         out = self.decoder(self.t)
 
         return out
     
 
 if __name__ == '__main__':
-    print(summary(NeuralNetwork()))
+    print(summary(Model()))

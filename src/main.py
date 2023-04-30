@@ -12,7 +12,7 @@ from torchinfo import summary
 
 from utils import StyleContentDataset, DataStore, denorm_img
 from loss import Loss
-from model import NeuralNetwork
+from model import Model
 
 
 config = {
@@ -20,10 +20,10 @@ config = {
     "max_iter": 80000,
     "logging_interval": 100,
     "preview_interval": 1000,
-    "batch_size": 8,
+    "batch_size": 4,
     "activations": "ReLU",
     "optimizer": "Adam",
-    "lambda": 8
+    "lambda": 7
 }
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -31,27 +31,31 @@ print(f"Using {device} device")
 
 def prepare_data(style_dir, content_dir, preview_dir):
     norm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    transform = transforms.Compose([transforms.Resize(256), transforms.RandomCrop(256)])
-
+    
+    # Training images
+    transform = transforms.Compose([transforms.Resize(512), transforms.RandomCrop(256)])
     style_imgs = glob.glob(os.path.join(style_dir, '*.jpg'))
     content_imgs = glob.glob(os.path.join(content_dir, '*.jpg'))
 
     train_dataset = StyleContentDataset(style_imgs, content_imgs, transform=transform, normalize=norm)
     datastore = DataStore(train_dataset, batch_size=config['batch_size'], shuffle=True)
     
+    # Preview images
+    transform = transforms.Compose([transforms.Resize(256), transforms.CenterCrop(256)])
     preview_style_imgs = glob.glob(os.path.join(preview_dir, 'style/*.jpg'))
     preview_content_imgs = glob.glob(os.path.join(preview_dir, 'content/*.jpg'))
 
-    preview_dataset = StyleContentDataset(preview_style_imgs, preview_content_imgs, transform=transform, normalize=norm)
+    # preview_dataset = StyleContentDataset(preview_style_imgs, preview_content_imgs, transform=transform, normalize=norm)
+    preview_dataset = StyleContentDataset(preview_style_imgs, [preview_content_imgs[8]] * len(preview_style_imgs), transform=transform, normalize=norm)
     preview_datastore = DataStore(preview_dataset, batch_size=len(preview_dataset), shuffle=False)
     
     return datastore, preview_datastore
 
 
-def preview(model: NeuralNetwork, datastore: DataStore, iteration, save=False, use_wandb=False):
+def preview(model: Model, datastore: DataStore, iteration, save=False, use_wandb=False):
     model.eval()
     with torch.no_grad():
-        np.random.shuffle(datastore.dataset.style_imgs)
+        # np.random.shuffle(datastore.dataset.style_imgs)
         # np.random.shuffle(datastore.dataset.content_imgs)
         
         style, content = datastore.get()
@@ -81,7 +85,7 @@ def preview(model: NeuralNetwork, datastore: DataStore, iteration, save=False, u
             wandb.log({'preview': wandb.Image(f'outputs/{iteration}_preview.png')}, step=iteration)    
 
 
-def train_one_iter(datastore: DataStore, model: NeuralNetwork, optimizer: torch.optim.Adam, loss_fn: Loss):
+def train_one_iter(datastore: DataStore, model: Model, optimizer: torch.optim.Adam, loss_fn: Loss):
     model.train()
     
     style, content = datastore.get()
@@ -107,7 +111,7 @@ def train_one_iter(datastore: DataStore, model: NeuralNetwork, optimizer: torch.
     return loss.item(), loss_fn.loss_c.item(), loss_fn.loss_s.item()
 
 
-def train(datastore, preview_datastore, model: NeuralNetwork, optimizer: torch.optim.Adam, use_wandb=False):
+def train(datastore, preview_datastore, model: Model, optimizer: torch.optim.Adam, use_wandb=False):
     train_history = {'style_loss': [], 'content_loss': [], 'loss': []}
     
     # optimizer = torch.optim.Adam(model.decoder.parameters(), lr=config['lr'])
@@ -167,7 +171,7 @@ def main():
 
     datastore, preview_datastore = prepare_data(style_dir, content_dir, preview_dir)
     
-    model = NeuralNetwork()
+    model = Model()
     optimizer = torch.optim.Adam(model.decoder.parameters(), lr=config['lr'])
     if args.model_path:
         # From checkpoint

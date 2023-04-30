@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision.io import read_image, ImageReadMode
+import numpy as np
 
 
 def denorm_img(img: torch.Tensor) -> torch.Tensor:
@@ -44,9 +45,9 @@ class StyleContentDataset(Dataset):
     
 
 class DataStore():
-    def __init__(self, dataset, batch_size, shuffle=False):
+    def __init__(self, dataset: StyleContentDataset, batch_size, shuffle=False):
         self.dataset = dataset
-        self.dataloader = DataLoader(self.dataset, batch_size=batch_size, shuffle=shuffle)
+        self.dataloader = DataLoader(self.dataset, batch_size=batch_size, shuffle=shuffle, num_workers=2)
         self.iterator = iter(self.dataloader)
 
     def get(self):
@@ -54,6 +55,7 @@ class DataStore():
            style, content = next(self.iterator)
         except (StopIteration):
             # print('| Repeating |')
+            # np.random.shuffle(self.dataset.style_imgs)
             self.iterator = iter(self.dataloader)
             style, content = next(self.iterator)
         
