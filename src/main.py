@@ -90,6 +90,8 @@ def train_one_iter(datastore: DataStore, model: Model, optimizer: torch.optim.Ad
     
     style, content = datastore.get()
     style, content = style.to(device), content.to(device)
+    
+    optimizer.zero_grad()
 
     # Forward
     out = model(content, style)
@@ -104,7 +106,6 @@ def train_one_iter(datastore: DataStore, model: Model, optimizer: torch.optim.Ad
     loss = loss_fn(enc_out, model.t, out_activations, style_activations)
 
     # Update parameters
-    optimizer.zero_grad()
     loss.backward()
     optimizer.step()
 

@@ -41,10 +41,6 @@ class Model(nn.Module):
             nn.Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
             nn.ReLU(),
 
-            # nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
-            # nn.ReLU(),
-            # nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
-            # nn.ReLU(),
             nn.Upsample(scale_factor=2.0, mode='nearest'),
             nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),
             nn.ReLU(),
@@ -66,7 +62,6 @@ class Model(nn.Module):
     # https://stackoverflow.com/a/68854535
     def _save_activations(self, name):
         def hook(module, input, output):
-            # self.activations[name] = output.detach()
             self.activations[name] = output
         return hook
 
@@ -74,8 +69,6 @@ class Model(nn.Module):
         enc_content = self.encoder(content)
         enc_style = self.encoder(style)
         
-        # self.t = self.AdaIN(enc_content, enc_style)
-        # out = self.decoder(self.t)
         self.t = self.AdaIN(enc_content, enc_style)
         self.t = (1.0 - self.alpha) * enc_content + self.alpha * self.t
         out = self.decoder(self.t)
