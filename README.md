@@ -64,7 +64,7 @@ $L_C$ predstavuje content loss, ktorý opisuje vzdialenosť (rozdiel) medzi pôv
 
 ```python
 def content_loss(self, enc_out: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
-        return F.mse_loss(enc_out, t)
+    return F.mse_loss(enc_out, t)
     
 def style_loss(self, out_activations: dict, style_activations: dict) -> torch.Tensor:
 	means, sds = 0, 0
@@ -77,7 +77,7 @@ def style_loss(self, out_activations: dict, style_activations: dict) -> torch.Te
 def loss(self, enc_out: torch.Tensor, t: torch.Tensor, out_activations: dict, style_activations: dict) -> torch.Tensor:
 	self.loss_c = self.content_loss(enc_out, t)
 	self.loss_s = self.style_loss(out_activations, style_activations)
-	
+
 	return (self.loss_c + self.lamb * self.loss_s)
 ```
 
