@@ -11,10 +11,6 @@ class Model(nn.Module):
         super().__init__()
         self.alpha = alpha
         
-        # TODO: 
-        # [x] pozriet ci tu nie su tie avg.pool, flatten - mali by byt len features
-        # self.encoder = list(vgg19(pretrained=True).children())[0][:21] 
-        # self.encoder = nn.Sequential(*list(vgg19(weights='VGG19_Weights.DEFAULT').features)[:21])
         self.encoder = nn.Sequential(*list(vgg19(pretrained=True).features)[:21])
 
         for param in self.encoder.parameters():
@@ -32,10 +28,6 @@ class Model(nn.Module):
         
         self.AdaIN = AdaIN()
         
-        # TODO: 
-        # [x] zmensit model
-        # [x] malo by to byt ako up, conv, relu
-        # [x] dat na koniec Tanh
         self.decoder = nn.Sequential(
             nn.Upsample(scale_factor=2.0, mode='nearest'),
             nn.Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), padding_mode='reflect'),

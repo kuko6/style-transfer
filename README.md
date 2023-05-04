@@ -40,12 +40,12 @@ V operácii AdaIN sa normalizovaný obsahový obrázok škáluje smerodajnou odc
 
 ```python
 class AdaIN(nn.Module):
-	def __init__(self, epsilon=1e-5):
-    super().__init__()
-    self.epsilon = epsilon
-	
-	def forward(self, content, style):
-    return (torch.mul(sigma(style, self.epsilon), ((content - mu(content)) / sigma(content, self.epsilon))) + mu(style))
+    def __init__(self, epsilon=1e-5):
+        super().__init__()
+        self.epsilon = epsilon
+
+    def forward(self, content: torch.Tensor, style: torch.Tensor) -> torch.Tensor:
+        return (torch.mul(sigma(style, self.epsilon), ((content - mi(content)) / sigma(content, self.epsilon))) + mi(style))
 ```
 
 Výstup z AdaIN vrstvy je zároveň vstupom do dekódera. Dekóder pozostáva z rovnakých vrstiev ako enkóder, ale v opačnom poradí (zdrkadlovo), pričom operácie MaxPooling boli nahradené operáciami Upsample. Výstupom dekódera je teda kombinácia štýlu a obsahu dvoch pôvodných obrázkov. Enkóder sa potom ešte používa druhýkrát pri počítaní content loss ($L_C$) a style loss ($L_S$).
@@ -63,19 +63,21 @@ $$
 $L_C$ predstavuje content loss, ktorý opisuje vzdialenosť (rozdiel) medzi pôvodným obrázkom a výstupom z AdaIN. $L_S$ zas predstavuje style loss, teda súčet vzdialeností strednej hodnoty a smerodajné odchýlky výstupov jednotlivých vrstiev (aktivácií) enkódera pre štýlový a výstupný obrázok. Vo vzťahu ešte figuruje parameter $\lambda$, ktorý je v tomto prípade novým hyperparametrom. Úpravou tohto parametra je možné určiť, do akej miery sa má preniesť štýl zo štýlového obrázka.
 
 ```python
-def content_loss(self, enc_out, t):
-	return F.mse_loss(enc_out, t)
-
-def style_loss(self, out_activations, style_activations):
+def content_loss(self, enc_out: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        return F.mse_loss(enc_out, t)
+    
+def style_loss(self, out_activations: dict, style_activations: dict) -> torch.Tensor:
 	means, sds = 0, 0
 	for out_act, style_act in zip(out_activations.values(), style_activations.values()):
-			means += F.mse_loss(mu(out_act), mu(style_act))
-		  sds += F.mse_loss(sigma(out_act), sigma(style_act))
+		means += F.mse_loss(mi(out_act), mi(style_act))
+		sds += F.mse_loss(sigma(out_act), sigma(style_act))
+		
 	return means + sds
 
-def loss(self, enc_out, t, out_activations, style_activations):
+def loss(self, enc_out: torch.Tensor, t: torch.Tensor, out_activations: dict, style_activations: dict) -> torch.Tensor:
 	self.loss_c = self.content_loss(enc_out, t)
-	self.loss_s = self.style_loss(out_activations, style_activations)        
+	self.loss_s = self.style_loss(out_activations, style_activations)
+	
 	return (self.loss_c + self.lamb * self.loss_s)
 ```
 
