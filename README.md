@@ -1,8 +1,15 @@
-# Zadanie 3
-
-Filip Petrán, Jakub Povinec
-
 ---
+title: Style Transfer
+emoji: 👨‍🎨
+colorFrom: pink
+colorTo: yellow
+sdk: gradio
+sdk_version: 4.36.1
+app_file: app.py
+pinned: false
+---
+
+# Style Transfer
 
 ## Cieľ
 

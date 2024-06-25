@@ -1,17 +1,14 @@
-import torch
 from torch import nn
 from torchvision.models import vgg19
-from torchinfo import summary
-
-from adain import AdaIN
-
+import torchvision
+from src.adain import AdaIN
 
 class Model(nn.Module):
     def __init__(self, alpha=1.0):
         super().__init__()
         self.alpha = alpha
         
-        self.encoder = nn.Sequential(*list(vgg19(pretrained=True).features)[:21])
+        self.encoder = nn.Sequential(*list(vgg19(weights=torchvision.models.VGG19_Weights.DEFAULT).features)[:21])
 
         for param in self.encoder.parameters():
             param.requires_grad = False
@@ -67,6 +64,3 @@ class Model(nn.Module):
 
         return out
     
-
-if __name__ == '__main__':
-    print(summary(Model()))

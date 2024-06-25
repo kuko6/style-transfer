@@ -1,11 +1,6 @@
-.ipynb_checkpoints
-.DS_Store
-
-wandb
 __pycache__/
-data/
-#models/
-outputs/
+.DS_Store
+.vscode/
 
-.env
-config.json
+test.*
+test/
