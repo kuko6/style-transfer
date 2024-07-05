@@ -22,21 +22,19 @@ $$
 L=L_C+\lambda L_s
 $$
 
-The content loss $L_C$ meassures the distance (difference) between the original content image and the generated image. It ensures that the content of the acquired image matches that of the original image. 
-<!-- $L_C$ is defined as mean squared error (MSE) between the features of the generated image and the scaled features from the AdaIN operation (which represents the original content). -->
+The content loss $L_C$ meassures the distance (difference) between the original content image and the generated image. It ensures that the content of the acquired image matches that of the original image. $L_C$ is defined as Mean Squared Error (MSE) between the features of the generated image and the scaled features from the AdaIN operation (which represents the original content).
 
 $$
-L_{C} = \left\| f(t) - t \right\|^2
+L_{C} = || f(t) - t ||^2
 $$
 
-On the other hand, the style loss $L_S$ ensures that the style of the generated image matches that of the input style image. 
-<!-- It is computed as a sum of the distances of the mean values and the standard deviations of the outputs from the individual layers of the encoder.  -->
+On the other hand, the style loss $L_S$ ensures that the style of the generated image matches that of the input style image. It is computed as the sum of the distances between the mean values and the standard deviations of the outputs from the individual layers of the encoder.
 
 $$
-L_{S} = \sum_{j=1} \left\| \mu(\phi_j(f(g))) - \mu(\phi_j(y)) \right\|^2 + \sum_{j=1} \left\| \sigma(\phi_j(f(g))) - \sigma(\phi_j(y)) \right\|^2
+L_{S} = \sum_{j=1} || \mu(\phi_j(f(g))) - \mu(\phi_j(y)) ||^2 + \sum_{j=1} || \sigma(\phi_j(f(g))) - \sigma(\phi_j(y)) ||^2
 $$
 
-The $\lambda$ parameter adjusts the extent of the transferred style that should be transferred from the style image to the content image.
+The $\lambda$ parameter adjusts the degree to which the style from the style image is transferred to the content image.
 
 <!-- ![training graphs](imgs/training_graphs.png)
 
@@ -66,7 +64,7 @@ install the requirements:
 pip install -r requirements.txt
 ```
 
-run the gradio app localy:
+run the gradio app:
 ```sh
 python3 app.py
 ```
