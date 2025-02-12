@@ -1,5 +1,5 @@
 # Style Transfer
-Implementation of Style Transfer based on the **Adaptive Instance Normalisation (AdaIN)** proposed by Huang et al. [1]. Live demo is available on [Hugging Face Spaces](https://kuko6-style-transfer.hf.space).
+Implementation of Style Transfer based on the **Adaptive Instance Normalisation (AdaIN)** proposed by Huang et al. [1]. Live demo is available on [HuggingFace Spaces](https://kuko6-style-transfer.hf.space).
 
 ## Method description
 Overall, the model's architecture consists of: an encoder (first 4 layers from VGG-19), AdaIN layer and a decoder.
