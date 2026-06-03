@@ -4,11 +4,13 @@ import torchvision
 from src.adain import AdaIN
 
 class Model(nn.Module):
-    def __init__(self, alpha=1.0):
+    def __init__(self, alpha=1.0, pretrained_encoder=True):
         super().__init__()
         self.alpha = alpha
+
+        weights = torchvision.models.VGG19_Weights.DEFAULT if pretrained_encoder else None
         
-        self.encoder = nn.Sequential(*list(vgg19(weights=torchvision.models.VGG19_Weights.DEFAULT).features)[:21])
+        self.encoder = nn.Sequential(*list(vgg19(weights=weights).features)[:21])
 
         for param in self.encoder.parameters():
             param.requires_grad = False

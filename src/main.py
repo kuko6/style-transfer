@@ -31,7 +31,7 @@ print(f"Using {device} device")
 
 def prepare_data(style_dir, content_dir, preview_dir):
     norm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    
+
     # Training images
     transform = transforms.Compose([transforms.Resize(512), transforms.RandomCrop(256)])
     style_imgs = glob.glob(os.path.join(style_dir, '*.jpg'))
@@ -39,7 +39,7 @@ def prepare_data(style_dir, content_dir, preview_dir):
 
     train_dataset = StyleContentDataset(style_imgs, content_imgs, transform=transform, normalize=norm)
     datastore = DataStore(train_dataset, batch_size=config['batch_size'], shuffle=True)
-    
+
     # Preview images
     transform = transforms.Compose([transforms.Resize(256), transforms.CenterCrop(256)])
     preview_style_imgs = glob.glob(os.path.join(preview_dir, 'style/*.jpg'))
@@ -48,7 +48,7 @@ def prepare_data(style_dir, content_dir, preview_dir):
     # preview_dataset = StyleContentDataset(preview_style_imgs, preview_content_imgs, transform=transform, normalize=norm)
     preview_dataset = StyleContentDataset(preview_style_imgs, [preview_content_imgs[8]] * len(preview_style_imgs), transform=transform, normalize=norm)
     preview_datastore = DataStore(preview_dataset, batch_size=len(preview_dataset), shuffle=False)
-    
+
     return datastore, preview_datastore
 
 
@@ -57,11 +57,11 @@ def preview(model: Model, datastore: DataStore, iteration, save=False, use_wandb
     with torch.no_grad():
         # np.random.shuffle(datastore.dataset.style_imgs)
         # np.random.shuffle(datastore.dataset.content_imgs)
-        
+
         style, content = datastore.get()
         style, content = style.to(device), content.to(device)
         out = model(content, style)
-        
+
         fig, axs = plt.subplots(8, 6, figsize=(20, 26))
         axs = axs.flatten()
         i = 0
@@ -76,21 +76,21 @@ def preview(model: Model, datastore: DataStore, iteration, save=False, use_wandb
             axs[i+2].axis('off')
             axs[i+2].set_title('output')
             i += 3
-         
+
         if save:
             fig.savefig(f'outputs/{iteration}_preview.png')
             plt.close(fig)
-        
+
         if use_wandb:
-            wandb.log({'preview': wandb.Image(f'outputs/{iteration}_preview.png')}, step=iteration)    
+            wandb.log({'preview': wandb.Image(f'outputs/{iteration}_preview.png')}, step=iteration)
 
 
 def train_one_iter(datastore: DataStore, model: Model, optimizer: torch.optim.Adam, loss_fn: Loss):
     model.train()
-    
+
     style, content = datastore.get()
     style, content = style.to(device), content.to(device)
-    
+
     optimizer.zero_grad()
 
     # Forward
@@ -98,7 +98,7 @@ def train_one_iter(datastore: DataStore, model: Model, optimizer: torch.optim.Ad
 
     # Save activations
     style_activations = copy.deepcopy(model.activations)
-    
+
     enc_out = model.encoder(out)
     out_activations = model.activations
 
@@ -114,7 +114,7 @@ def train_one_iter(datastore: DataStore, model: Model, optimizer: torch.optim.Ad
 
 def train(datastore, preview_datastore, model: Model, optimizer: torch.optim.Adam, use_wandb=False):
     train_history = {'style_loss': [], 'content_loss': [], 'loss': []}
-    
+
     # optimizer = torch.optim.Adam(model.decoder.parameters(), lr=config['lr'])
     loss_fn = Loss(lamb=config['lambda'])
 
@@ -156,7 +156,7 @@ def main():
     wandb_key = args.wandb
     if wandb_key:
         wandb.login(key=wandb_key)
-        wandb.init(project="assignment-3", name="", reinit=True, config=config)    
+        wandb.init(project="assignment-3", name="", reinit=True, config=config)
         use_wandb = True
 
     if args.content_path and args.style_path and args.preview_path:
@@ -166,17 +166,17 @@ def main():
     else:
         print('You didnt specify the data path >:(')
         return
-    
+
     if not os.path.isdir('outputs'):
         os.mkdir('outputs')
 
     datastore, preview_datastore = prepare_data(style_dir, content_dir, preview_dir)
-    
+
     model = Model()
     optimizer = torch.optim.Adam(model.decoder.parameters(), lr=config['lr'])
     if args.model_path:
         # From checkpoint
-        checkpoint = torch.load('outputs/checkpoint.pt')
+        checkpoint = torch.load('outputs/checkpoint.pt', weights_only=False)
         model.load_state_dict(checkpoint['model_state'])
         optimizer.load_state_dict(checkpoint['optimizer_state'])
         config['max_iter'] -= checkpoint['iter']
@@ -185,9 +185,9 @@ def main():
         # model.load_state_dict(torch.load(args.model_path, map_location=torch.device(device)))
     # print(summary(model))
     model.to(device)
-    
+
     train(datastore, preview_datastore, model, optimizer, use_wandb)
-    
+
     torch.save(model.state_dict(), 'outputs/model.pt')
     if use_wandb:
         artifact = wandb.Artifact('model', type='model')
@@ -197,4 +197,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main() 
+    main()
